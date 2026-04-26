@@ -61,4 +61,12 @@ export class DestinationService {
       body: input,
     },
     { apiName: this.apiName,...config });
+
+  getEvents = (city: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, any[]>({
+      method: 'GET',
+      url: '/api/app/destination/events',
+      params: { city },
+    },
+    { apiName: this.apiName,...config });
 }

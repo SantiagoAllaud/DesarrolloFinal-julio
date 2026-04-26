@@ -26,6 +26,7 @@ namespace FAFS.Destinations
         private readonly IRepository<FavoriteDestination, Guid> _favoriteRepository;
         private readonly IRepository<AppNotification, Guid> _notificationRepository;
         private readonly IGuidGenerator _guidGenerator;
+        private readonly ITicketmasterService _ticketmasterService;
 
         public DestinationAppService(
             IRepository<Destination, Guid> repository, 
@@ -33,7 +34,8 @@ namespace FAFS.Destinations
             IRepository<DestinationRating, Guid> ratingRepository,
             IRepository<FavoriteDestination, Guid> favoriteRepository,
             IRepository<AppNotification, Guid> notificationRepository,
-            IGuidGenerator guidGenerator)
+            IGuidGenerator guidGenerator,
+            ITicketmasterService ticketmasterService)
             : base(repository)
         {
             _citySearchService = citySearchService;
@@ -41,6 +43,7 @@ namespace FAFS.Destinations
             _favoriteRepository = favoriteRepository;
             _notificationRepository = notificationRepository;
             _guidGenerator = guidGenerator;
+            _ticketmasterService = ticketmasterService;
         }
 
         public override async Task<DestinationDto> GetAsync(Guid id)
@@ -114,6 +117,11 @@ namespace FAFS.Destinations
         public async Task<CityDto?> GetCityDetailsAsync(string cityId)
         {
             return await _citySearchService.GetCityDetailsAsync(cityId);
+        }
+
+        public async Task<List<DestinationEventDto>> GetEventsAsync(string city)
+        {
+            return await _ticketmasterService.GetEventsForCityAsync(city);
         }
 
         protected override async Task<IQueryable<Destination>> CreateFilteredQueryAsync(GetDestinationsInput input)
