@@ -1,4 +1,4 @@
-﻿using FAFS.Application.Contracts.Destinations;
+using FAFS.Application.Contracts.Destinations;
 using Microsoft.Extensions.Options;
 using System;
 using System.Net.Http;
@@ -160,11 +160,18 @@ namespace FAFS.Destinations
     public class ExternalApisOptions
     {
         public GeoDbOptions GeoDb { get; set; } = new();
+        public TicketmasterOptions Ticketmaster { get; set; } = new();
 
         public class GeoDbOptions
         {
             public string BaseUrl { get; set; } = "https://wft-geo-db.p.rapidapi.com/v1/geo/";
             public string ApiHost { get; set; } = "wft-geo-db.p.rapidapi.com";
+            public string ApiKey { get; set; } = string.Empty;
+        }
+
+        public class TicketmasterOptions
+        {
+            public string BaseUrl { get; set; } = "https://app.ticketmaster.com/discovery/v2/";
             public string ApiKey { get; set; } = string.Empty;
         }
     }

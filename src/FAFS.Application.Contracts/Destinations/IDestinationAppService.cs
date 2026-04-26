@@ -1,4 +1,4 @@
-﻿using FAFS.Application.Contracts.Destinations;
+using FAFS.Application.Contracts.Destinations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,5 +23,8 @@ namespace FAFS.Destinations
 
         // Custom method for getting city details (external service)
         Task<CityDto?> GetCityDetailsAsync(string cityId);
+
+        // Custom method for getting events (Ticketmaster API)
+        Task<List<DestinationEventDto>> GetEventsAsync(string city);
     }
 }

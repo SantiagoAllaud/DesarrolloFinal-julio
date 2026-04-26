@@ -1,4 +1,4 @@
-﻿using FAFS.Destinations;
+using FAFS.Destinations;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Account;
 using Volo.Abp.AutoMapper;
@@ -29,9 +29,10 @@ public class FAFSApplicationModule : AbpModule
             options.AddMaps<FAFSApplicationModule>();
         });
 
-        // Configuración del servicio externo GeoDB Cities
+        // Configuración del servicio externo GeoDB Cities y Ticketmaster
         // 1 Registrar el HttpClient para las llamadas HTTP
         context.Services.AddHttpClient("GeoDbClient");
+        context.Services.AddHttpClient("TicketmasterClient");
 
         // 2️ Vincular la configuración del archivo appsettings.json (sección ExternalApis)
         context.Services.AddOptions<ExternalApisOptions>()

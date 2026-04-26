@@ -6,7 +6,7 @@ import { ToasterService } from '@abp/ng.theme.shared';
 import { ConfigStateService } from '@abp/ng.core';
 
 import { DestinationService, FavoriteDestinationService, DestinationRatingService } from '@proxy/destinations';
-import { CityDto, CitySearchRequestDto, DestinationDto, DestinationRatingDto } from '@proxy/application/contracts/destinations/models';
+import { CityDto, CitySearchRequestDto, DestinationDto, DestinationRatingDto, DestinationEventDto } from '@proxy/application/contracts/destinations/models';
 
 @Component({
   selector: 'app-destinations-list',
@@ -22,6 +22,9 @@ export class DestinationsListComponent implements OnInit {
   showFilters = false;
   selectedCity: any = null;
   showModal = false;
+  
+  eventsMap: { [key: string]: DestinationEventDto[] } = {};
+  expandedEvents: { [key: string]: boolean } = {};
 
   popularDestinations: DestinationDto[] = [];
   selectedDestinationRatings: DestinationRatingDto[] = [];
@@ -90,6 +93,8 @@ export class DestinationsListComponent implements OnInit {
         next: (result: any) => {
           this.cities = result.cities || result.items || [];
           this.fetchUnsplashImages();
+          // Cargar eventos para todas las ciudades en el resultado de búsqueda
+          this.cities.forEach(city => this.loadEventsForDestination(city));
         },
         error: (err) => {
           console.error('Error:', err);
@@ -122,17 +127,19 @@ export class DestinationsListComponent implements OnInit {
     this.destinationService.getList({ maxResultCount: 20 })
       .subscribe(result => {
         const items = (result as any).items || result || [];
-        // Filtramos y ordenamos por calificación
+        // Ordenamos por calificación
         this.popularDestinations = items
-          .filter(d => (d.averageRating || 0) > 0)
           .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
           .slice(0, 4);
 
-        // Fallback inteligente: si no hay suficientes calificados, rellenar con los últimos guardados
+        // Fallback inteligente: si no hay suficientes, rellenar con los últimos guardados
         if (this.popularDestinations.length < 4) {
           const others = items.filter(d => !this.popularDestinations.find(p => p.id === d.id)).slice(0, 4 - this.popularDestinations.length);
           this.popularDestinations = [...this.popularDestinations, ...others];
         }
+
+        // Cargar eventos para todos los destinos mostrados
+        this.popularDestinations.forEach(d => this.loadEventsForDestination(d));
       });
   }
 
@@ -193,6 +200,21 @@ export class DestinationsListComponent implements OnInit {
   loadSavedDestinations(): void {
     this.favoriteService.getMyFavorites().subscribe(result => {
       this.savedDestinations = result;
+      this.savedDestinations.forEach(d => this.loadEventsForDestination(d));
+    });
+  }
+
+  loadEventsForDestination(destination: DestinationDto): void {
+    const city = destination.city || destination.name;
+    if (!city || this.eventsMap[destination.id]) return;
+
+    this.destinationService.getEvents(city).subscribe({
+      next: (events) => {
+        this.eventsMap[destination.id] = events;
+      },
+      error: () => {
+        console.error('No se pudieron cargar eventos para', city);
+      }
     });
   }
 
@@ -233,6 +255,11 @@ export class DestinationsListComponent implements OnInit {
 
   toggleFilters(): void {
     this.showFilters = !this.showFilters;
+  }
+
+  toggleEvents(id: string, event: Event): void {
+    event.stopPropagation();
+    this.expandedEvents[id] = !this.expandedEvents[id];
   }
 
   clearSearch(): void {
