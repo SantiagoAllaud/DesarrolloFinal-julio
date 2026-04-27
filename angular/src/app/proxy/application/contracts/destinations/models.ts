@@ -53,3 +53,12 @@ export interface DestinationRatingDto {
   comment?: string;
   creationTime: string;
 }
+
+export interface DestinationEventDto {
+  name?: string;
+  date?: string;
+  time?: string;
+  url?: string;
+  imageUrl?: string;
+  venueName?: string;
+}
