@@ -5,12 +5,15 @@ import { CoreModule } from '@abp/ng.core';
 import { ThemeSharedModule } from '@abp/ng.theme.shared';
 import { Subscription } from 'rxjs';
 
+/// Componente de la campanita de notificaciones en la barra de navegación.
+/// Escucha en tiempo real (mediante HTTP interceptor) y muestra una burbuja emergente (popup)
+/// temporal y un modal detallado de notificaciones clasificadas por Leídas/No leídas.
 @Component({
     selector: 'app-notification-bell',
     standalone: true,
     imports: [CommonModule, CoreModule, ThemeSharedModule],
     template: `
-    <!-- Bell Icon -->
+    <!-- Icono de Campanita -->
     <a
       class="nav-link"
       role="button"
@@ -22,7 +25,7 @@ import { Subscription } from 'rxjs';
       </span>
     </a>
 
-    <!-- Notification Popup (appears for 5 seconds) -->
+    <!-- Ventana Emergente Temporal (se muestra 5 segundos al recibir nueva notificación) -->
     <div 
       *ngIf="showPopup && latestNotification" 
       class="notification-popup shadow-lg rounded border bg-white p-3 position-absolute"
@@ -36,10 +39,10 @@ import { Subscription } from 'rxjs';
       <p class="mb-1 small text-muted text-wrap">{{ latestNotification.message }}</p>
     </div>
 
-    <!-- Modal Backdrop -->
+    <!-- Fondo Oscuro del Modal (Backdrop) -->
     <div *ngIf="isModalOpen" class="modal-backdrop fade show" (click)="closeModal()"></div>
 
-    <!-- Modal Form (Centrado) -->
+    <!-- Contenido del Modal de Notificaciones -->
     <div 
         *ngIf="isModalOpen" 
         class="modal fade show custom-modal" 
@@ -55,7 +58,7 @@ import { Subscription } from 'rxjs';
             <button type="button" class="btn-close" aria-label="Close" (click)="closeModal()"></button>
           </div>
           <div class="modal-header bg-light pt-2 pb-0 border-bottom">
-            <!-- Tabs Navigation -->
+            <!-- Pestañas (Tabs) de Navegación -->
             <ul class="nav nav-tabs border-0 w-100">
               <li class="nav-item">
                 <a class="nav-link" [class.active]="activeTab === 'general'" (click)="activeTab = 'general'" role="button">
@@ -143,13 +146,13 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     notifications: AppNotificationDto[] = [];
     unreadCount = 0;
     
-    // Popup properties
+    // Configuración del Popup emergente
     showPopup = false;
     latestNotification: AppNotificationDto | null = null;
     private popupTimer: any;
     private updateSub: Subscription | undefined;
 
-    // Modal properties
+    // Configuración del Modal
     isModalOpen = false;
     activeTab: 'general' | 'unread' | 'read' = 'general';
 
@@ -159,7 +162,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
         this.loadNotifications();
         this.loadUnreadCount();
 
-        // Listen for updates from the interceptor
+        // Escucha novedades gatilladas por el interceptor HTTP de notificaciones
         this.updateSub = this.notificationService.notificationUpdated$.subscribe(() => {
             this.handleNotificationUpdate();
         });
@@ -174,6 +177,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
         }
     }
 
+    /// Filtra la lista de notificaciones localmente según la pestaña activa
     get filteredNotifications(): AppNotificationDto[] {
         if (this.activeTab === 'unread') {
             return this.notifications.filter(n => !n.isRead);
@@ -198,17 +202,18 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     }
 
     onModalClick(event: MouseEvent) {
-        // Close modal if clicked outside the content (on the backdrop overlay)
+        // Cierra el modal si se hace clic por fuera de su caja
         if ((event.target as HTMLElement).classList.contains('modal')) {
             this.closeModal();
         }
     }
 
+    /// Método que responde a una nueva notificación detectada
     handleNotificationUpdate() {
-        // Fetch new data
         this.loadUnreadCount();
         this.notificationService.getNotifications().subscribe((res) => {
             const newItems = res.items;
+            // Si hay notificaciones nuevas y es distinta a la última conocida, muestra el popup temporal
             if (newItems.length > 0 && 
                 (!this.notifications.length || newItems[0].id !== this.notifications[0].id)) {
                 
@@ -221,6 +226,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
         });
     }
 
+    /// Muestra la notificación en la cajita flotante durante 5 segundos
     displayPopup() {
         this.showPopup = true;
         if (this.popupTimer) {
@@ -250,6 +256,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
         });
     }
 
+    /// Marca una notificación individual como leída
     markAsRead(notification: AppNotificationDto) {
         if (!notification.isRead) {
             this.notificationService.markAsRead(notification.id).subscribe(() => {
@@ -259,6 +266,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
         }
     }
 
+    /// Marca la totalidad de notificaciones del usuario como leídas
     markAllAsRead() {
         this.notificationService.markAllAsRead().subscribe(() => {
             this.notifications.forEach(n => n.isRead = true);

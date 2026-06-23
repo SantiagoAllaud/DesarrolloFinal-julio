@@ -11,6 +11,8 @@ import { ConfirmationService, Confirmation } from '@abp/ng.theme.shared';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
+/// Componente para gestionar el perfil del usuario autenticado.
+/// Permite cambiar los datos personales, subir foto en Base64, cambiar contraseña, ver calificaciones realizadas y eliminar la cuenta.
 @Component({
     selector: 'app-my-profile',
     standalone: true,
@@ -20,8 +22,8 @@ import { finalize } from 'rxjs/operators';
 })
 export class MyProfileComponent implements OnInit {
     private fb = inject(FormBuilder);
-    private profileService = inject(ProfileService);
-    private userProfileService = inject(UserProfileService);
+    private profileService = inject(ProfileService); // Servicio estándar de ABP para la cuenta
+    private userProfileService = inject(UserProfileService); // Servicio extendido de FAFS (Foto, borrar cuenta)
     private authService = inject(AuthService);
     private toaster = inject(ToasterService);
     private confirmation = inject(ConfirmationService);
@@ -45,9 +47,10 @@ export class MyProfileComponent implements OnInit {
         this.loadMyRatings();
     }
 
+    /// Construye el formulario reactivo para los datos básicos del perfil
     buildProfileForm() {
         this.profileForm = this.fb.group({
-            userName: [{ value: '', disabled: true }],
+            userName: [{ value: '', disabled: true }], // El nombre de usuario no es editable
             name: ['', [Validators.required, Validators.maxLength(64)]],
             surname: ['', [Validators.required, Validators.maxLength(64)]],
             email: ['', [Validators.required, Validators.email, Validators.maxLength(256)]],
@@ -55,6 +58,7 @@ export class MyProfileComponent implements OnInit {
         });
     }
 
+    /// Construye el formulario reactivo para el cambio de contraseña
     buildPasswordForm() {
         this.passwordForm = this.fb.group({
             currentPassword: ['', [Validators.required]],
@@ -63,23 +67,26 @@ export class MyProfileComponent implements OnInit {
         }, { validators: this.passwordMatchValidator });
     }
 
+    /// Validador personalizado para asegurar que las contraseñas coincidan
     passwordMatchValidator(g: FormGroup) {
         const newPass = g.get('newPassword')?.value;
         const confirmPass = g.get('confirmPassword')?.value;
         return newPass === confirmPass ? null : { mismatch: true };
     }
 
+    /// Carga la información del perfil del usuario actual desde el backend
     loadProfile() {
         this.profileService.get().subscribe((profile) => {
             this.profileForm.patchValue(profile);
 
-            // Cargar foto de perfil desde nuestro servicio extendido
+            // Cargar la foto de perfil personalizada (extensión del perfil estándar)
             this.userProfileService.getMyProfile().subscribe(res => {
                 this.fotoUrl = res.fotoUrl || 'assets/images/default-avatar.png';
             });
         });
     }
 
+    /// Captura el archivo de imagen seleccionado y lo lee como Base64 para subirlo
     onFileSelected(event: any) {
         const file = event.target.files[0];
         if (file) {
@@ -92,6 +99,7 @@ export class MyProfileComponent implements OnInit {
         }
     }
 
+    /// Sube la imagen del avatar en formato Base64
     uploadAvatar(base64Image: string) {
         this.avatarLoading = true;
         this.userProfileService.updateProfilePicture({ fotoUrl: base64Image })
@@ -102,15 +110,16 @@ export class MyProfileComponent implements OnInit {
             });
     }
 
+    /// Guarda los cambios del perfil y la foto de perfil en el backend
     updateProfile() {
         if (this.profileForm.invalid) return;
 
         this.loading = true;
 
-        // Guardar información básica
+        // Guarda la información básica
         this.profileService.update(this.profileForm.getRawValue())
             .subscribe(() => {
-                // Si hay una foto cargada, nos aseguramos de guardarla también al dar clic en el botón
+                // Si hay una foto cargada, se asegura de guardarla
                 if (this.fotoUrl && this.fotoUrl !== 'assets/images/default-avatar.png') {
                     this.userProfileService.updateProfilePicture({ fotoUrl: this.fotoUrl })
                         .pipe(finalize(() => this.loading = false))
@@ -124,6 +133,7 @@ export class MyProfileComponent implements OnInit {
             });
     }
 
+    /// Cambia la contraseña del usuario
     changePassword() {
         if (this.passwordForm.invalid) return;
 
@@ -137,6 +147,7 @@ export class MyProfileComponent implements OnInit {
             });
     }
 
+    /// Lanza un diálogo de confirmación para eliminar la cuenta definitivamente y desloguearse
     deleteAccount() {
         this.confirmation.warn(
             '¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.',
@@ -154,18 +165,18 @@ export class MyProfileComponent implements OnInit {
         });
     }
 
+    /// Carga las calificaciones realizadas por el usuario
     loadMyRatings() {
         this.ratingsLoading = true;
         this.ratingService.getMyRatings()
             .pipe(finalize(() => this.ratingsLoading = false))
             .subscribe(ratings => {
                 this.myRatings = ratings;
-                // Intentar cargar nombres de destinos si es necesario, 
-                // pero por ahora mostraremos los IDs o lo que tengamos
                 this.loadDestinationNames();
             });
     }
 
+    /// Carga el nombre legible de los destinos calificados (ya que los ratings guardan solo el ID)
     loadDestinationNames() {
         this.myRatings.forEach(rating => {
             this.destinationService.get(rating.destinationId).subscribe(dest => {
@@ -174,6 +185,7 @@ export class MyProfileComponent implements OnInit {
         });
     }
 
+    /// Elimina una reseña tras confirmación
     deleteRating(id: string) {
         this.confirmation.warn(
             '¿Estás seguro de que deseas eliminar esta reseña?',

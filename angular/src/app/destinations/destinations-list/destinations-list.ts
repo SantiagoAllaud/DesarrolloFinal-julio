@@ -8,6 +8,8 @@ import { ConfigStateService } from '@abp/ng.core';
 import { DestinationService, FavoriteDestinationService, DestinationRatingService } from '@proxy/destinations';
 import { CityDto, CitySearchRequestDto, DestinationDto, DestinationRatingDto, DestinationEventDto } from '@proxy/application/contracts/destinations/models';
 
+/// Componente principal para listar, buscar y calificar destinos turísticos.
+/// Permite buscar ciudades, agregarlas a favoritos, ver eventos de Ticketmaster y calificarlas.
 @Component({
   selector: 'app-destinations-list',
   standalone: false,
@@ -16,6 +18,7 @@ import { CityDto, CitySearchRequestDto, DestinationDto, DestinationRatingDto, De
 })
 export class DestinationsListComponent implements OnInit {
 
+  // Variables de estado
   cities: any[] = [];
   savedDestinations: DestinationDto[] = [];
   isLoading = false;
@@ -23,6 +26,7 @@ export class DestinationsListComponent implements OnInit {
   selectedCity: any = null;
   showModal = false;
   
+  // Mapeo de eventos (Ticketmaster) por ID de destino
   eventsMap: { [key: string]: DestinationEventDto[] } = {};
   expandedEvents: { [key: string]: boolean } = {};
 
@@ -34,6 +38,7 @@ export class DestinationsListComponent implements OnInit {
   isRatingDraft = false;
   currentUserId: string | null = null;
 
+  // Filtros de búsqueda
   searchParams = {
     query: '',
     country: '',
@@ -44,12 +49,13 @@ export class DestinationsListComponent implements OnInit {
   private searchSubject = new Subject<string>();
 
   constructor(
-    private destinationService: DestinationService,
+    private destinationService: DestinationService, // Proxies auto-generados por ABP
     private favoriteService: FavoriteDestinationService,
     private ratingService: DestinationRatingService,
     private toasterService: ToasterService,
     private configState: ConfigStateService
   ) { 
+    // Obtiene el ID del usuario actualmente autenticado desde el estado global de ABP
     this.currentUserId = this.configState.getDeep('currentUser.id');
   }
 
@@ -57,6 +63,7 @@ export class DestinationsListComponent implements OnInit {
     this.loadSavedDestinations();
     this.loadPopularDestinations();
 
+    // Configura búsqueda reactiva con delay (debounce) para no saturar el servidor al escribir
     this.searchSubject.pipe(
       debounceTime(1200),
       distinctUntilChanged()
@@ -73,6 +80,7 @@ export class DestinationsListComponent implements OnInit {
     this.executeSearch(this.searchParams.query);
   }
 
+  /// Ejecuta la búsqueda de ciudades utilizando la API de GeoDB a través del backend
   private executeSearch(query: string): void {
     if (this.isLoading) return;
     if (!query && !this.searchParams.country && !this.searchParams.region) return;
@@ -93,7 +101,7 @@ export class DestinationsListComponent implements OnInit {
         next: (result: any) => {
           this.cities = result.cities || result.items || [];
           this.fetchUnsplashImages();
-          // Cargar eventos para todas las ciudades en el resultado de búsqueda
+          // Carga los recitales/eventos de Ticketmaster de inmediato para cada ciudad encontrada
           this.cities.forEach(city => this.loadEventsForDestination(city));
         },
         error: (err) => {
@@ -104,6 +112,7 @@ export class DestinationsListComponent implements OnInit {
       });
   }
 
+  /// Asigna imágenes de Unsplash aleatorias pero coherentes para cada ciudad
   private fetchUnsplashImages() {
     const curatedPhotoIds = [
       '1502602898657-3e91760cbb34', '1449156001566-35957096fb91', '1477959858617-67f85cf4f1df',
@@ -123,26 +132,26 @@ export class DestinationsListComponent implements OnInit {
     }
   }
 
+  /// Carga los destinos mejor calificados por los usuarios (populares)
   loadPopularDestinations(): void {
     this.destinationService.getList({ maxResultCount: 20 })
       .subscribe(result => {
         const items = (result as any).items || result || [];
-        // Ordenamos por calificación
         this.popularDestinations = items
           .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
           .slice(0, 4);
 
-        // Fallback inteligente: si no hay suficientes, rellenar con los últimos guardados
         if (this.popularDestinations.length < 4) {
           const others = items.filter(d => !this.popularDestinations.find(p => p.id === d.id)).slice(0, 4 - this.popularDestinations.length);
           this.popularDestinations = [...this.popularDestinations, ...others];
         }
 
-        // Cargar eventos para todos los destinos mostrados
         this.popularDestinations.forEach(d => this.loadEventsForDestination(d));
       });
   }
 
+  /// Abre el modal de detalle de la ciudad.
+  /// Intenta buscar una descripción en tiempo real directamente desde Wikipedia en español.
   async openCityDetails(city: any) {
     this.selectedCity = city;
     this.showModal = true;
@@ -151,6 +160,7 @@ export class DestinationsListComponent implements OnInit {
     this.userRating = null;
     this.isRatingDraft = false;
 
+    // Verifica si la ciudad ya está guardada en favoritos
     const existingDest = this.savedDestinations.find(d => 
       (d.city === city.name || d.city === city.city) && d.country === city.country);
 
@@ -167,6 +177,7 @@ export class DestinationsListComponent implements OnInit {
         `${city.name} ${city.country}`
       ];
 
+      // Filtros para evitar traer desambiguaciones, enfermedades u otros textos raros de Wikipedia
       const BANNED = /enfermedad|político|partido|médico|virus|biografía|nacido en|elecciones|mosquito|protesta/i;
       const REQUIRED = /ciudad|municipio|localidad|población|situado|clima|turismo|historia/i;
       let foundExtract = '';
@@ -197,6 +208,7 @@ export class DestinationsListComponent implements OnInit {
     this.showModal = false;
   }
 
+  /// Carga la lista de favoritos del usuario conectado
   loadSavedDestinations(): void {
     this.favoriteService.getMyFavorites().subscribe(result => {
       this.savedDestinations = result;
@@ -204,6 +216,7 @@ export class DestinationsListComponent implements OnInit {
     });
   }
 
+  /// Consulta al backend los eventos locales de Ticketmaster para una ciudad dada
   loadEventsForDestination(destination: DestinationDto): void {
     const city = destination.city || destination.name;
     if (!city || this.eventsMap[destination.id]) return;
@@ -228,6 +241,8 @@ export class DestinationsListComponent implements OnInit {
     return this.savedDestinations.find(d => d.city === cityName && d.country === city.country)?.id;
   }
 
+  /// Agrega o quita un destino de favoritos.
+  /// Si el destino no existe en la BD del backend, primero lo crea y luego lo marca como favorito.
   toggleFavorite(city: CityDto | any): void {
     const existingId = this.getFavoriteId(city);
     if (existingId) {
@@ -270,6 +285,7 @@ export class DestinationsListComponent implements OnInit {
     this.cities = [];
   }
 
+  /// Obtiene una imagen de repuesto dinámica usando LoremFlickr basada en etiquetas
   getCityImageUrl(cityOrName: any, country?: string): string {
     const name = typeof cityOrName === 'string' ? cityOrName : (cityOrName?.name || cityOrName?.city);
     const countryName = country || cityOrName?.country || '';
@@ -293,6 +309,7 @@ export class DestinationsListComponent implements OnInit {
     }
   }
 
+  /// Carga los puntajes y comentarios creados para un destino
   loadRatings(destinationId: string): void {
     this.ratingService.getRatings(destinationId).subscribe(ratings => {
       this.selectedDestinationRatings = ratings;
@@ -308,6 +325,8 @@ export class DestinationsListComponent implements OnInit {
     });
   }
 
+  /// Guarda una calificación (puntuación + reseña) para el destino.
+  /// Si el destino no está guardado previamente en favoritos/BD, lo crea primero.
   submitRating(): void {
     const existingDest = this.savedDestinations.find(d => 
       (d.city === this.selectedCity.name || d.city === this.selectedCity.city) && d.country === this.selectedCity.country);
@@ -354,6 +373,7 @@ export class DestinationsListComponent implements OnInit {
     });
   }
 
+  /// Elimina la calificación del usuario actual
   deleteRating(): void {
     if (!this.userRating) return;
     this.ratingService.deleteRating(this.userRating.id).subscribe(() => {

@@ -21,6 +21,7 @@ namespace FAFS.Application.Tests.Destinations
         private readonly Mock<IRepository<FavoriteDestination, Guid>> _mockFavoriteRepository;
         private readonly Mock<IRepository<AppNotification, Guid>> _mockNotificationRepository;
         private readonly Mock<Volo.Abp.Guids.IGuidGenerator> _mockGuidGenerator;
+        private readonly Mock<ITicketmasterService> _mockTicketmasterService;
         private readonly DestinationAppService _appService;
 
         public CitySearchAppService_Tests()
@@ -32,6 +33,7 @@ namespace FAFS.Application.Tests.Destinations
             _mockFavoriteRepository = new Mock<IRepository<FavoriteDestination, Guid>>();
             _mockNotificationRepository = new Mock<IRepository<AppNotification, Guid>>();
             _mockGuidGenerator = new Mock<Volo.Abp.Guids.IGuidGenerator>();
+            _mockTicketmasterService = new Mock<ITicketmasterService>();
 
             // 🔹 Inyección en el AppService real
             _appService = new DestinationAppService(
@@ -40,7 +42,8 @@ namespace FAFS.Application.Tests.Destinations
                 _mockRatingRepository.Object,
                 _mockFavoriteRepository.Object,
                 _mockNotificationRepository.Object,
-                _mockGuidGenerator.Object);
+                _mockGuidGenerator.Object,
+                _mockTicketmasterService.Object);
         }
 
         [Fact]

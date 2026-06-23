@@ -15,6 +15,7 @@ using Volo.Abp.BlobStoring.Database;
 
 namespace FAFS;
 
+// Define los recursos compartidos entre todas las capas (Constantes, Enums, Idiomas/Traducciones).
 [DependsOn(
     typeof(AbpAuditLoggingDomainSharedModule),
     typeof(AbpBackgroundJobsDomainSharedModule),
@@ -27,28 +28,33 @@ namespace FAFS;
     )]
 public class FAFSDomainSharedModule : AbpModule
 {
+    // Se ejecuta antes de configurar los servicios principales
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
-        FAFSGlobalFeatureConfigurator.Configure();
-        FAFSModuleExtensionConfigurator.Configure();
+        FAFSGlobalFeatureConfigurator.Configure(); // Configura características globales de ABP
+        FAFSModuleExtensionConfigurator.Configure(); // Extiende entidades nativas (agrega FotoUrl y Preferencias al IdentityUser)
     }
 
+    // Configura los servicios de internacionalización y archivos virtuales
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        // Configura el sistema de archivos virtuales para poder embeber archivos JSON de traducción
         Configure<AbpVirtualFileSystemOptions>(options =>
         {
             options.FileSets.AddEmbedded<FAFSDomainSharedModule>();
         });
 
+        // Configura los idiomas soportados por la aplicación y el recurso de traducción por defecto
         Configure<AbpLocalizationOptions>(options =>
         {
             options.Resources
-                .Add<FAFSResource>("en")
-                .AddBaseTypes(typeof(AbpValidationResource))
-                .AddVirtualJson("/Localization/FAFS");
+                .Add<FAFSResource>("en") // Agrega el recurso en inglés por defecto
+                .AddBaseTypes(typeof(AbpValidationResource)) // Extiende las validaciones base
+                .AddVirtualJson("/Localization/FAFS"); // Indica la ruta de los archivos JSON de traducciones
 
             options.DefaultResourceType = typeof(FAFSResource);
             
+            // Agrega los idiomas disponibles para seleccionar en la interfaz
             options.Languages.Add(new LanguageInfo("en", "en", "English")); 
             options.Languages.Add(new LanguageInfo("ar", "ar", "Arabic")); 
             options.Languages.Add(new LanguageInfo("zh-Hans", "zh-Hans", "Chinese (Simplified)")); 
@@ -69,9 +75,9 @@ public class FAFSDomainSharedModule : AbpModule
             options.Languages.Add(new LanguageInfo("es", "es", "Spanish")); 
             options.Languages.Add(new LanguageInfo("sv", "sv", "Swedish")); 
             options.Languages.Add(new LanguageInfo("tr", "tr", "Turkish")); 
-
         });
         
+        // Mapea los códigos de excepción locales para que traduzca los errores de negocio automáticamente
         Configure<AbpExceptionLocalizationOptions>(options =>
         {
             options.MapCodeNamespace("FAFS", typeof(FAFSResource));

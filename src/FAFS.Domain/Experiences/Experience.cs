@@ -4,12 +4,13 @@ using FAFS.Experiences;
 
 namespace FAFS.Experiences
 {
+    // Representa una Experiencia turística (un post o testimonio de un usuario) en la base de datos.
     public class Experience : AuditedAggregateRoot<Guid>
     {
-        public Guid DestinationId { get; private set; }
-        public string Title { get; private set; }
-        public string Description { get; private set; }
-        public ExperienceRating Rating { get; private set; }
+        public Guid DestinationId { get; private set; } // El destino al cual se refiere esta experiencia
+        public string Title { get; private set; } // Título del post
+        public string Description { get; private set; } // Contenido/reseña del post
+        public ExperienceRating Rating { get; private set; } // Calificación (un enum: excelente, buena, mala, etc)
 
         protected Experience()
         {
@@ -29,6 +30,7 @@ namespace FAFS.Experiences
             Rating = rating;
         }
 
+        // Valida y asigna el título, controlando que no esté vacío y no supere el límite de caracteres
         public void SetTitle(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -42,6 +44,7 @@ namespace FAFS.Experiences
             Title = title;
         }
 
+        // Valida y asigna la descripción/cuerpo del testimonio
         public void SetDescription(string description)
         {
             if (string.IsNullOrWhiteSpace(description))

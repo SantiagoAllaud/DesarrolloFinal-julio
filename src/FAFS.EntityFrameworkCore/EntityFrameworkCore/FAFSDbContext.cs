@@ -21,12 +21,18 @@ using Volo.Abp.Users;
 
 namespace FAFS.EntityFrameworkCore;
 
+/// <summary>
+/// Contexto principal de Base de Datos para el proyecto FAFS.
+/// Hereda de AbpDbContext y configura Entity Framework Core para conectarse a la base de datos.
+/// Aquí es donde declaramos nuestras "tablas" (DbSet) y cómo se mapean.
+/// </summary>
 [ReplaceDbContext(typeof(IIdentityDbContext))]
 [ConnectionStringName("Default")]
 public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
 {
     private const string Schema = "Abp";
 
+    // Tablas de la aplicación
     public DbSet<Destination> Destinations { get; set; }
     public DbSet<DestinationRating> DestinationRatings { get; set; }
     public DbSet<Experience> Experiences { get; set; }
@@ -34,8 +40,8 @@ public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
     public DbSet<FavoriteDestination> FavoriteDestinations { get; set; }
     public DbSet<ApiUsageMetric> ApiUsageMetrics { get; set; }
 
-
     #region Identity
+    // Tablas propias de ABP Identity (Usuarios, Roles, etc.)
     public DbSet<IdentityUser> Users { get; set; }
     public DbSet<IdentityRole> Roles { get; set; }
     public DbSet<IdentityClaimType> ClaimTypes { get; set; }
@@ -51,10 +57,15 @@ public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
     {
     }
 
+    /// <summary>
+    /// Configuración de los modelos al crear la base de datos.
+    /// Aquí definimos las restricciones, índices y relaciones entre tablas usando Fluent API.
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
+        // Configuración de los módulos de ABP
         builder.ConfigurePermissionManagement();
         builder.ConfigureSettingManagement();
         builder.ConfigureBackgroundJobs();
@@ -64,13 +75,16 @@ public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
         builder.ConfigureOpenIddict();
         builder.ConfigureBlobStoring();
 
+        // Configuración para la tabla Destination (Destinos)
         builder.Entity<Destination>(b =>
         {
             b.ToTable("Destination", Schema);
-            b.ConfigureByConvention();
+            b.ConfigureByConvention(); // Configura las propiedades base de ABP
             b.Property(d => d.Name).IsRequired();
             b.Property(d => d.Country).IsRequired();
             b.Property(d => d.City).IsRequired();
+            
+            // Configura Coordinates como un Value Object propio
             b.OwnsOne(d => d.Coordinates, c =>
             {
                 c.Property(p => p.Latitude).HasColumnName("Latitude").IsRequired();
@@ -78,6 +92,7 @@ public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
             });
         });
 
+        // Configuración para las calificaciones de los destinos
         builder.Entity<DestinationRating>(b =>
         {
             b.ToTable("DestinationRatings", Schema);
@@ -87,6 +102,7 @@ public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
             b.HasIndex(x => new { x.UserId, x.DestinationId }).IsUnique(false);
         });
 
+        // Configuración para las experiencias (actividades, tours, etc.)
         builder.Entity<Experience>(b =>
         {
             b.ToTable("Experiences", Schema);
@@ -94,10 +110,12 @@ public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
             b.Property(x => x.Title).IsRequired().HasMaxLength(ExperienceConsts.MaxTitleLength);
             b.Property(x => x.Description).IsRequired().HasMaxLength(ExperienceConsts.MaxDescriptionLength);
             b.Property(x => x.Rating).IsRequired();
+            // Una experiencia pertenece a un destino
             b.HasOne<Destination>().WithMany().HasForeignKey(x => x.DestinationId).IsRequired();
             b.HasIndex(x => x.DestinationId);
         });
 
+        // Configuración de las notificaciones
         builder.Entity<AppNotification>(b =>
         {
             b.ToTable("AppNotifications", Schema);
@@ -109,14 +127,18 @@ public class FAFSDbContext : AbpDbContext<FAFSDbContext>, IIdentityDbContext
             b.HasIndex(x => x.IsRead);
         });
 
+        // Configuración de destinos favoritos por usuario
         builder.Entity<FavoriteDestination>(b =>
         {
             b.ToTable("FavoriteDestinations", Schema);
             b.ConfigureByConvention();
-            b.HasIndex(x => new { x.UserId, x.DestinationId }).IsUnique(); // Un usuario solo puede guardar un destino una vez
+            // Un usuario solo puede guardar un mismo destino como favorito una vez
+            b.HasIndex(x => new { x.UserId, x.DestinationId }).IsUnique(); 
+            // Relación con el Destino, y borrado en cascada (si se borra el destino, se borra el favorito)
             b.HasOne<Destination>().WithMany().HasForeignKey(x => x.DestinationId).IsRequired().OnDelete(DeleteBehavior.Cascade);
         });
 
+        // Configuración de métricas de uso de API
         builder.Entity<ApiUsageMetric>(b =>
         {
             b.ToTable("ApiUsageMetrics", Schema);

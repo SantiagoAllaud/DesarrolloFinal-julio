@@ -4,6 +4,10 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { NotificationService } from './notification.service';
 
+/// Interceptor HTTP para refrescar automáticamente la campanita de notificaciones.
+/// Intercepta las respuestas exitosas de las peticiones para detectar si el usuario
+/// guardó un destino, actualizó su perfil, cambió su contraseña o quitó favoritos.
+/// En caso afirmativo, le avisa al NotificationService para refrescar las notificaciones del header.
 @Injectable()
 export class NotificationInterceptor implements HttpInterceptor {
 
@@ -13,7 +17,7 @@ export class NotificationInterceptor implements HttpInterceptor {
     return next.handle(request).pipe(
       tap((event: HttpEvent<any>) => {
         if (event instanceof HttpResponse) {
-          // Check if the successful request was related to updating the profile or saving/updating a destination
+          // Detectamos si la petición fue exitosa y de interés para notificaciones
           const isProfileUpdate = (request.url.includes('/api/account/my-profile') && request.method === 'PUT') ||
                                   (request.url.includes('/api/account/my-profile/change-password') && request.method === 'POST');
           const isDestinationCreate = request.url.includes('/api/app/destination') && request.method === 'POST';
@@ -21,7 +25,8 @@ export class NotificationInterceptor implements HttpInterceptor {
           const isFavoriteToggle = request.url.includes('/api/app/favorite-destination/toggle-favorite') && request.method === 'POST';
 
           if (isProfileUpdate || isDestinationCreate || isDestinationUpdate || isFavoriteToggle) {
-            // Give a tiny delay for backend transaction to fully commit and emit the refresh event
+            // Damos una pequeña demora de 500ms para asegurar que la transacción del backend 
+            // se complete del todo antes de gatillar la recarga de notificaciones
             setTimeout(() => {
                 this.notificationService.notificationUpdated$.next();
             }, 500);

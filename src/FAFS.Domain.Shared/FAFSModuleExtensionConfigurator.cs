@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Identity;
 using Volo.Abp.ObjectExtending;
 using Volo.Abp.Threading;
 
 namespace FAFS;
 
+// Configuración para extender los módulos existentes de ABP (por ejemplo, agregar campos extras a los usuarios).
 public static class FAFSModuleExtensionConfigurator
 {
     private static readonly OneTimeRunner OneTimeRunner = new OneTimeRunner();
@@ -20,35 +21,28 @@ public static class FAFSModuleExtensionConfigurator
 
     private static void ConfigureExistingProperties()
     {
-        /* You can change max lengths for properties of the
-         * entities defined in the modules used by your application.
-         *
-         * Example: Change user and role name max lengths
-
-           AbpUserConsts.MaxNameLength = 99;
-           IdentityRoleConsts.MaxNameLength = 99;
-
-         * Notice: It is not suggested to change property lengths
-         * unless you really need it. Go with the standard values wherever possible.
-         *
-         * If you are using EF Core, you will need to run the add-migration command after your changes.
-         */
+        /* Aquí se pueden modificar longitudes máximas de campos existentes de ABP */
     }
 
+    // Método para agregar propiedades personalizadas (campos extra) a las entidades nativas de ABP
     private static void ConfigureExtraProperties()
     {
         ObjectExtensionManager.Instance.Modules()
             .ConfigureIdentity(identity =>
             {
+                // Configura la entidad nativa de Usuario (IdentityUser)
                 identity.ConfigureUser(user =>
                 {
+                    // 1. Agrega el campo extra "FotoUrl" (de tipo string) para guardar la foto de perfil del usuario
                     user.AddOrUpdateProperty<string>(
                         "FotoUrl",
                         property =>
                         {
-                            // Configuración básica sin dependencias de base de datos
+                            // Configuración básica
                         }
                     );
+                    
+                    // 2. Agrega el campo extra "Preferencias" (de tipo string con límite de 2048 letras) para almacenar sus gustos
                     user.AddOrUpdateProperty<string>(
                         "Preferencias",
                         property =>
