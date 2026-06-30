@@ -223,10 +223,11 @@ export class DestinationsListComponent implements OnInit {
 
     this.destinationService.getEvents(city).subscribe({
       next: (events) => {
-        this.eventsMap[destination.id] = events;
+        this.eventsMap[destination.id] = events || [];
       },
       error: () => {
         console.error('No se pudieron cargar eventos para', city);
+        this.eventsMap[destination.id] = [];
       }
     });
   }
